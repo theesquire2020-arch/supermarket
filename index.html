@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chief's Super Market — Receipt Generator</title>
+<!--
+================================================================================
+ CHIEF'S SUPER MARKET — RECEIPT GENERATOR (Single File, No CDN, No Build)
+================================================================================
+ HOW TO USE:
+ 1. Double-click index.html to run. No internet required.
+ 2. Add items on the left, preview updates live on the right.
+ 3. Click ⚙️ Settings to edit store name, address, logo, VAT, footer, etc.
+ 4. LOGO: In Settings you can (a) keep Default SVG, (b) Upload PNG/JPG,
+    (c) use Image URL like "logo.png" (put logo.png next to this file to use
+    your own file), or (d) hide logo. Logo always prints in black & white.
+ 5. PAPER: Toggle 58mm / 80mm in header. @page updates automatically.
+ 6. PRINT: Click Print Receipt or press Ctrl+P. Only receipt prints.
+================================================================================
+-->
+<style id="pageSizeStyle">@page { size: 80mm auto; margin: 0; }</style>
+<style>
+/* ================= APP UI (screen only, does NOT print) ================= */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(135deg,#f5f7fa 0%,#dbe7f5 100%);color:#1f2937;min-height:100vh}
+:root{
+--primary:#0f766e;--primary-dark:#0d5d56;--primary-light:#14b8a6;
+--accent:#f59e0b;--bg-card:#ffffff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;
+--danger:#dc2626;--success:#16a34a;
+--shadow-sm:0 1px 2px rgba(0,0,0,.06);--shadow-md:0 4px 14px rgba(0,0,0,.08);--shadow-lg:0 12px 30px rgba(0,0,0,.12);
+--radius:14px;
+}
+/* Header */
+header.app-header{background:linear-gradient(135deg,#0f766e 0%,#0d3f3a 60%,#082f2c 100%);color:#fff;padding:16px 22px;box-shadow:var(--shadow-md);position:sticky;top:0;z-index:50;border-bottom:1px solid rgba(255,255,255,.12)}
+header .brand{display:flex;align-items:center;gap:13px;flex-wrap:wrap;max-width:1300px;margin:0 auto}
+.brand-icon{width:46px;height:46px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 10px rgba(0,0,0,.2);flex-shrink:0}
+header h1{font-size:20px;font-weight:800;margin:0;letter-spacing:-.3px}
+header .subtitle{font-size:12.5px;opacity:.88;margin-top:2px;letter-spacing:.2px}
+header .controls{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill-toggle{display:inline-flex;background:rgba(255,255,255,.16);border-radius:999px;padding:3px;border:1px solid rgba(255,255,255,.18)}
+.pill-toggle button{background:transparent;color:#fff;border:none;padding:7px 15px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+.pill-toggle button.active{background:#fff;color:var(--primary);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.icon-btn{display:inline-flex;align-items:center;gap:7px;background:#fff;color:var(--primary-dark);border:none;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.icon-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.22);background:#f0fdfa}
+/* Layout */
+main{max-width:1300px;margin:22px auto;padding:0 18px 10px;display:grid;grid-template-columns:1.08fr .92fr;gap:22px;align-items:start}
+@media(max-width:960px){main{grid-template-columns:1fr}}
+.card{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:22px;border:1px solid var(--border);animation:rise .4s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card h2{margin:0 0 14px;font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text)}
+.card h2 .badge{background:var(--primary);color:#fff;font-size:11px;padding:3px 9px;border-radius:999px;font-weight:700;letter-spacing:.2px}
+.card h2 .spacer{margin-left:auto}
+/* Form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end}
+.form-grid .full{grid-column:1/-1}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr 1fr}.form-grid .full{grid-column:1/-1}}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;padding:10px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);transition:border-color .15s,box-shadow .15s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+.disc-wrap{display:flex;gap:6px}
+.disc-wrap input{flex:1;min-width:0}
+.disc-wrap select{width:70px;flex-shrink:0;background:#f8fafc;font-weight:700}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 16px;border:none;border-radius:9px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform .1s,box-shadow .15s,background .15s,filter .15s;box-shadow:var(--shadow-sm)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark);box-shadow:0 4px 12px rgba(15,118,110,.3)}
+.btn-secondary{background:#f1f5f9;color:var(--text);border:1px solid #e2e8f0}
+.btn-secondary:hover{background:#e2e8f0}
+.btn-danger{background:#fee2e2;color:var(--danger)}
+.btn-danger:hover{background:#fecaca}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#15803d;box-shadow:0 4px 12px rgba(22,163,74,.3)}
+.btn-dark{background:#1e293b;color:#fff}
+.btn-dark:hover{background:#0f172a}
+.btn-block{width:100%}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:7px}
+.actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+kbd{background:#1e293b;color:#fff;padding:2px 7px;border-radius:6px;font-size:11px;font-family:inherit}
+/* Tables */
+.items-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.items-table th{background:#f8fafc;padding:9px 10px;text-align:left;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);white-space:nowrap}
+.items-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.items-table tr:hover td{background:#f8fafc}
+.items-table .right{text-align:right}.items-table .center{text-align:center}
+.empty-row td{text-align:center;padding:26px;color:var(--muted);font-style:italic}
+/* Totals */
+.totals-box{margin-top:14px;background:linear-gradient(180deg,#f8fafc,#f1f5f9);border-radius:11px;padding:14px 16px;border:1px solid var(--border)}
+.totals-box .row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
+.totals-box .row.grand{border-top:2px solid var(--text);margin-top:6px;padding-top:9px;font-size:17px;font-weight:800}
+/* Misc rows */
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cashier-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+@media(max-width:600px){.cashier-row{grid-template-columns:1fr}}
+.amount-wrap{display:flex;gap:6px}
+.amount-wrap input{flex:1;min-width:0}
+.amount-wrap button{flex-shrink:0}
+.checkbox-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:13px;align-items:center}
+.checkbox-row label{display:flex;align-items:center;gap:7px;cursor:pointer;background:#f0fdfa;border:1px solid #ccfbf1;padding:7px 12px;border-radius:999px;font-weight:600}
+.checkbox-row input{width:16px;height:16px;accent-color:var(--primary)}
+.small-note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+.small-note code{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-size:11px}
+/* Preview card */
+.preview-card{position:sticky;top:86px}
+@media(max-width:960px){.preview-card{position:static}}
+.preview-hint{font-size:12px;color:var(--muted);margin:-6px 0 12px}
+.paper-badge{background:#1e293b;color:#fff;font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700}
+.receipt-wrapper{display:flex;justify-content:center;padding:14px;background:repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 10px,#eaf0f8 10px,#eaf0f8 20px);border-radius:12px;border:1px dashed #cbd5e1}
+/* ================= RECEIPT (thermal paper) ================= */
+.receipt{width:80mm;background:#fff;color:#000;padding:6mm 5mm;font-family:"Courier New",Courier,monospace;font-size:12px;line-height:1.3;box-shadow:var(--shadow-lg);border-radius:3px}
+.receipt.width-58{width:58mm;padding:5mm 4mm;font-size:11px}
+.receipt .center{text-align:center}.receipt .right{text-align:right}.receipt .bold{font-weight:700}
+.receipt .store-name{font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;margin:4px 0;line-height:1.2;word-break:break-word}
+.receipt.width-58 .store-name{font-size:14px}
+.receipt .addr{text-align:center;font-size:11px;margin-bottom:2px;word-break:break-word;line-height:1.35}
+.receipt.width-58 .addr{font-size:10px}
+.receipt .logo-box{text-align:center;margin:2px 0 4px}
+.receipt .logo-box svg{display:inline-block;vertical-align:middle}
+.receipt .logo-box img{display:inline-block;vertical-align:middle;filter:grayscale(100%) contrast(1.15)}
+.receipt .r-div{text-align:center;white-space:nowrap;overflow:hidden;margin:5px 0;letter-spacing:.5px;font-size:11px;line-height:1}
+.receipt .r-div.stars{letter-spacing:2px;font-weight:700}
+.receipt .meta{display:flex;justify-content:space-between;font-size:11px;margin:1px 0;gap:8px}
+.receipt.width-58 .meta{font-size:10px}
+.receipt .meta span:last-child{text-align:right;word-break:break-word}
+.receipt table.items{width:100%;border-collapse:collapse;font-size:11px;margin:4px 0;table-layout:fixed}
+.receipt.width-58 table.items{font-size:10px}
+.receipt table.items th{text-align:left;font-weight:700;padding:3px 1px;border-bottom:1px solid #000;font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+.receipt table.items th.r{text-align:right}.receipt table.items th.c{text-align:center}
+.receipt table.items td{padding:2px 1px;vertical-align:top;word-break:break-word}
+.receipt table.items td.r{text-align:right;white-space:nowrap}.receipt table.items td.c{text-align:center;white-space:nowrap}
+.receipt table.items td.wrap{white-space:normal;word-break:break-word}
+.receipt table.items tr.disc-line td{font-size:9px;padding:0 1px 3px;color:#000}
+.receipt .totals{width:100%;margin:4px 0;font-size:11px}
+.receipt.width-58 .totals{font-size:10px}
+.receipt .totals .row{display:flex;justify-content:space-between;padding:1px 0}
+.receipt .totals .row.grand{border-top:1px solid #000;border-bottom:1px solid #000;font-weight:700;font-size:14px;padding:4px 0;margin:3px 0}
+.receipt .footer{text-align:center;font-size:10px;text-transform:uppercase;margin-top:6px;line-height:1.45}
+.receipt .barcode-bars{display:flex;align-items:flex-end;justify-content:center;margin:7px 0 3px;min-height:34px}
+.receipt .barcode-bars i{background:#000;display:block}
+.receipt .barcode-num{text-align:center;font-size:10px;letter-spacing:1.5px}
+.receipt .qr-grid{display:grid;grid-template-columns:repeat(21,3px);grid-auto-rows:3px;justify-content:center;margin:7px auto 3px;border:3px solid #000;padding:4px;width:max-content;background:#fff}
+.receipt.width-58 .qr-grid{grid-template-columns:repeat(21,2px);grid-auto-rows:2px}
+.receipt .qr-grid i{display:block;width:100%;height:100%}
+.receipt .qr-grid i.b{background:#000}.receipt .qr-grid i.w{background:#fff}
+.receipt .qr-text{text-align:center;font-size:9px;margin-top:2px;word-break:break-all}
+/* ================= SETTINGS MODAL ================= */
+.settings-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:22px;overflow-y:auto}
+.settings-overlay.open{display:flex}
+.settings-modal{background:#fff;border-radius:16px;max-width:680px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(10px)}to{opacity:1;transform:none}}
+.settings-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff}
+.settings-header h2{margin:0;font-size:17px;font-weight:800}
+.settings-close{background:rgba(255,255,255,.18);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;line-height:1}
+.settings-close:hover{background:rgba(255,255,255,.3)}
+.settings-body{padding:20px 22px;max-height:66vh;overflow-y:auto}
+.set-section{margin-bottom:22px;border:1px solid var(--border);border-radius:12px;padding:16px;background:#fcfdff}
+.set-section h3{margin:0 0 12px;font-size:14px;font-weight:800;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.4px}
+.set-desc{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.6}
+.set-desc code{background:#f1f5f9;padding:1px 6px;border-radius:5px}
+.set-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.set-grid .full{grid-column:1/-1}
+@media(max-width:560px){.set-grid{grid-template-columns:1fr}}
+.logo-type-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.logo-type-row label{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;background:#f1f5f9;padding:7px 11px;border-radius:999px;cursor:pointer;border:1px solid transparent}
+.logo-type-row label:has(input:checked){background:#ccfbf1;border-color:var(--primary);color:var(--primary-dark)}
+.logo-type-row input{accent-color:var(--primary)}
+.file-row{display:flex;gap:8px}
+.file-row input[type=file]{flex:1;border:1.5px dashed #cbd5e1;border-radius:9px;padding:8px;background:#fff;font-size:12px}
+.logo-preview-box{display:flex;align-items:center;gap:14px;margin-top:12px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px;padding:12px}
+.logo-preview-box span{font-size:12px;font-weight:700;color:var(--muted)}
+#logoPreview{min-height:56px;display:flex;align-items:center;justify-content:center;flex:1;background:repeating-linear-gradient(45deg,#f8fafc,#f8fafc 8px,#fff 8px,#fff 16px);border-radius:8px;padding:8px}
+.settings-footer{display:flex;gap:10px;justify-content:flex-end;padding:16px 22px;border-top:1px solid var(--border);background:#f8fafc;flex-wrap:wrap}
+/* Toast */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(40px);background:#1e293b;color:#fff;padding:12px 22px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .25s ease;z-index:1000;display:flex;align-items:center;gap:8px;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.info{background:var(--primary)}
+footer.app-footer{text-align:center;font-size:12px;color:var(--muted);padding:16px;opacity:.9}
+/* ================= PRINT: only receipt prints ================= */
+@media print{
+body{background:#fff !important}
+body *{visibility:hidden !important}
+.receipt,.receipt *{visibility:visible !important}
+.receipt{position:absolute !important;left:0;top:0;width:80mm !important;padding:4mm 4mm;box-shadow:none !important;border-radius:0 !important;page-break-inside:avoid;break-inside:avoid;margin:0 !important}
+.receipt.width-58{width:58mm !important}
+.settings-overlay,.toast,footer.app-footer{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ======= HEADER ======= -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-icon">🛒</div>
+    <div>
+      <h1>Chief's Super Market</h1>
+      <div class="subtitle">POS Receipt Generator · Thermal 58mm / 80mm</div>
+    </div>
+    <div class="controls">
+      <span style="font-size:12px;opacity:.9;font-weight:600;">Paper:</span>
+      <div class="pill-toggle" id="paperToggle">
+        <button data-w="58" type="button">58mm</button>
+        <button data-w="80" type="button" class="active">80mm</button>
+      </div>
+      <button class="icon-btn" id="openSettingsBtn" type="button">⚙️ Settings</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ======= LEFT: Form + Cart ======= -->
+  <section class="card" id="leftPanel">
+    <h2>➕ Add Item <span class="badge">Point of Sale</span></h2>
+    <div class="form-grid">
+      <div class="field full">
+        <label for="itemName">Item Name</label>
+        <input type="text" id="itemName" placeholder="e.g. Cooking Oil 1L" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="itemPrice">Unit Price (KSh)</label>
+        <input type="number" id="itemPrice" placeholder="0.00" step="0.01" min="0">
+      </div>
+      <div class="field">
+        <label for="itemQty">Quantity</label>
+        <input type="number" id="itemQty" placeholder="1" step="1" min="1" value="1">
+      </div>
+      <div class="field">
+        <label for="itemDisc">Discount (optional)</label>
+        <div class="disc-wrap">
+          <input type="number" id="itemDisc" placeholder="0" step="0.01" min="0" value="0">
+          <select id="itemDiscType" title="Discount type">
+            <option value="flat">KSh</option>
+            <option value="pct">%</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="actions-row">
+      <button class="btn btn-primary" id="addBtn" type="button">➕ Add Item</button>
+      <button class="btn btn-secondary" id="clearBtn" type="button">🗑 Clear All</button>
+    </div>
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="applyVat"> <span id="vatLabel">Apply VAT (16%)</span></label>
+      <span style="margin-left:auto;font-size:12px;color:var(--muted);">Shortcut: <kbd>Enter</kbd> to add · <kbd>Ctrl+P</kbd> to print</span>
+    </div>
+
+    <h2 style="margin-top:22px;">🧾 Cart <span id="cartCount" class="badge">0</span></h2>
+    <div style="overflow-x:auto;">
+      <table class="items-table" id="itemsTable">
+        <thead><tr><th>Item</th><th class="right">Price</th><th class="center">Qty</th><th class="right">Disc</th><th class="right">Total</th><th class="center">Action</th></tr></thead>
+        <tbody id="itemsBody"><tr class="empty-row"><td colspan="6">No items added yet</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="totals-box" id="totalsBox">
+      <div class="row"><span>Subtotal</span><span id="tSubtotal">KSh 0.00</span></div>
+      <div class="row"><span>Total Discount</span><span id="tDiscount">KSh 0.00</span></div>
+      <div class="row" id="tVatRow" style="display:none;"><span id="tVatLabel">VAT (16%)</span><span id="tVat">KSh 0.00</span></div>
+      <div class="row grand"><span>TOTAL</span><span id="tGrand">KSh 0.00</span></div>
+    </div>
+
+    <h2 style="margin-top:22px;">💳 Payment</h2>
+    <div class="cashier-row">
+      <div class="field"><label for="cashierName">Cashier</label><input type="text" id="cashierName" placeholder="Cashier name" value="John Doe"></div>
+      <div class="field"><label for="payMethod">Method</label><select id="payMethod"><option>Cash</option><option>M-Pesa</option><option>Card</option></select></div>
+      <div class="field"><label for="amountPaid">Amount Paid (KSh)</label><div class="amount-wrap"><input type="number" id="amountPaid" step="0.01" min="0" placeholder="0.00"><button class="btn btn-secondary btn-sm" id="exactBtn" type="button" title="Fill exact total">Exact</button></div></div>
+    </div>
+    <div class="actions-row">
+      <button class="btn btn-success" id="generateBtn" type="button">📄 Generate Receipt</button>
+      <button class="btn btn-primary" id="printBtn" type="button">🖨 Print Receipt</button>
+      <button class="btn btn-dark" id="openSettingsBtn2" type="button">⚙️ Store Settings</button>
+    </div>
+    <p class="small-note">Tip: Cart auto-saves to <code>localStorage</code>. Receipt No. auto-increments and persists. Use <code>⚙️ Settings</code> to change logo, store name, address, footer, VAT &amp; currency.</p>
+  </section>
+
+  <!-- ======= RIGHT: Receipt Preview ======= -->
+  <section class="card preview-card">
+    <h2>👀 Live Receipt Preview <span class="spacer"></span><span id="paperBadge" class="paper-badge">80mm</span></h2>
+    <p class="preview-hint">Exactly as it will print — black on white, monospace, no colors.</p>
+    <div class="receipt-wrapper"><div class="receipt" id="receiptEl"><!-- receipt renders here --></div></div>
+    <p class="small-note" style="text-align:center;">Thermal paper preview · <span id="previewMeta">—</span></p>
+  </section>
+</main>
+
+<footer class="app-footer">© Chief's Super Market · POS Receipt Generator · Thermal 58 / 80mm · Works offline</footer>
+
+<!-- ======= SETTINGS MODAL ======= -->
+<div class="settings-overlay" id="settingsOverlay" role="dialog" aria-modal="true" aria-label="Store Settings">
+  <div class="settings-modal">
+    <div class="settings-header">
+      <h2>⚙️ Store Settings — Logo &amp; Supermarket Details</h2>
+      <button class="settings-close" id="closeSettingsBtn" type="button" title="Close">×</button>
+    </div>
+    <div class="settings-body">
+      <!-- Store details -->
+      <div class="set-section">
+        <h3>🏬 Supermarket Details</h3>
+        <div class="set-grid">
+          <div class="field full"><label for="setStoreName">Store Name</label><input id="setStoreName" type="text" placeholder="CHIEF'S SUPER MARKET"></div>
+          <div class="field"><label for="setAddr1">Address Line 1</label><input id="setAddr1" type="text" placeholder="P.O. Box 1234, Main Street"></div>
+          <div class="field"><label for="setAddr2">Address Line 2</label><input id="setAddr2" type="text" placeholder="Nairobi, Kenya"></div>
+          <div class="field"><label for="setPhone">Phone</label><input id="setPhone" type="text" placeholder="Tel: +254 700 000 000"></div>
+          <div class="field"><label for="setEmail">Email</label><input id="setEmail" type="text" placeholder="Email: info@chiefssupermarket.co.ke"></div>
+          <div class="field full"><label for="setWebsite">Website</label><input id="setWebsite" type="text" placeholder="www.chiefssupermarket.co.ke"></div>
+        </div>
+      </div>
+      <!-- Logo -->
+      <div class="set-section">
+        <h3>🖼️ Logo Settings (prints in B&amp;W)</h3>
+        <p class="set-desc">Choose how the centered logo at the top of the receipt looks. <b>Upload</b> a PNG/JPG, use <b>Image URL</b> like <code>logo.png</code> (place your <code>logo.png</code> file next to this HTML file), keep the <b>Default SVG</b>, or hide it. All logos print black &amp; white.</p>
+        <div class="logo-type-row" id="logoTypeRow">
+          <label><input type="radio" name="logoType" value="default"> Default SVG</label>
+          <label><input type="radio" name="logoType" value="upload"> Uploaded Image</label>
+          <label><input type="radio" name="logoType" value="url"> Image URL / logo.png</label>
+          <label><input type="radio" name="logoType" value="none"> No Logo</label>
+        </div>
+        <div class="set-grid">
+          <div class="field full" id="logoUploadWrap">
+            <label for="setLogoFile">Upload Logo (PNG/JPG · auto-resized &amp; saved)</label>
+            <div class="file-row">
+              <input type="file" id="setLogoFile" accept="image/*">
+              <button class="btn btn-danger btn-sm" id="removeLogoBtn" type="button">Remove</button>
+            </div>
+          </div>
+          <div class="field full" id="logoUrlWrap">
+            <label for="setLogoUrl">Logo Image URL</label>
+            <input id="setLogoUrl" type="text" placeholder="logo.png  or  https://example.com/logo.png">
+          </div>
+          <div class="field"><label for="setLogoShape">Shape</label><select id="setLogoShape"><option value="circle">Circular</option><option value="rect">Rectangular</option></select></div>
+          <div class="field"><label for="setLogoSize">Size: <span id="logoSizeVal">50px</span></label><input type="range" id="setLogoSize" min="30" max="80" value="50" style="padding:0;border:none;"></div>
+        </div>
+        <div class="logo-preview-box"><span>Preview:</span><div id="logoPreview"></div></div>
+      </div>
+      <!-- Receipt options -->
+      <div class="set-section">
+        <h3>🧾 Receipt Options &amp; Footer</h3>
+        <div class="set-grid">
+          <div class="field"><label for="setCurrency">Currency</label><input id="setCurrency" type="text" placeholder="KSh"></div>
+          <div class="field"><label for="setVatRate">VAT Rate %</label><input id="setVatRate" type="number" step="0.1" min="0" max="100"></div>
+          <div class="field"><label for="setPrefix">Receipt Prefix</label><input id="setPrefix" type="text" placeholder="CSM"></div>
+          <div class="field"><label for="setCashier">Default Cashier</label><input id="setCashier" type="text" placeholder="John Doe"></div>
+          <div class="field full"><label for="setPaper">Default Paper Width</label><select id="setPaper"><option value="58">58mm</option><option value="80">80mm</option></select></div>
+          <div class="field full"><label for="setFoot1">Footer Line 1</label><input id="setFoot1" type="text"></div>
+          <div class="field full"><label for="setFoot2">Footer Line 2</label><input id="setFoot2" type="text"></div>
+          <div class="field full"><label for="setFoot3">Footer Line 3</label><input id="setFoot3" type="text"></div>
+        </div>
+        <div class="checkbox-row" style="margin-top:12px;">
+          <label><input type="checkbox" id="setShowBarcode"> Show barcode</label>
+          <label><input type="checkbox" id="setShowQr"> Show QR / website</label>
+          <label><input type="checkbox" id="setShowVatDefault"> VAT on by default</label>
+        </div>
+      </div>
+      <!-- Data -->
+      <div class="set-section">
+        <h3>💾 Data &amp; Counter</h3>
+        <p class="set-desc">Receipt counter: <b id="counterVal">0</b> · Next receipt: <b id="nextVal">—</b></p>
+        <div class="actions-row" style="margin-top:0;">
+          <button class="btn btn-secondary btn-sm" id="resetSettingsBtn" type="button">↺ Reset Settings to Defaults</button>
+          <button class="btn btn-danger btn-sm" id="resetCounterBtn" type="button">Reset Receipt Counter</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-footer">
+      <button class="btn btn-secondary" id="cancelSettingsBtn" type="button">Cancel</button>
+      <button class="btn btn-success" id="saveSettingsBtn" type="button">💾 Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================================
+   1) DEFAULTS & CONFIG — Store details, logo, receipt options (editable in Settings)
+================================================================================ */
+var DEFAULTS = {
+  storeName: "CHIEF'S SUPER MARKET",
+  addressLine1: "P.O. Box 1234, Main Street",
+  addressLine2: "Nairobi, Kenya",
+  phone: "Tel: +254 700 000 000",
+  email: "Email: info@chiefssupermarket.co.ke",
+  website: "www.chiefssupermarket.co.ke",
+  currency: "KSh",
+  vatRate: 0.16,
+  defaultCashier: "John Doe",
+  receiptPrefix: "CSM",
+  defaultPaperWidth: 80,
+  // Logo: 'default' | 'upload' | 'url' | 'none'
+  logoType: "default",
+  logoUrl: "logo.png",      // <-- replace logo.png with your own file (same folder as index.html)
+  logoDataUrl: "",           // filled when user uploads an image (base64, persisted)
+  logoShape: "circle",       // 'circle' | 'rect'
+  logoSize: 50,              // 30..80 px
+  // Footer (centered, small caps on receipt)
+  foot1: "Thank you for shopping with us!",
+  foot2: "Goods sold are not returnable after 7 days",
+  foot3: "Powered by Chief's POS System",
+  showBarcode: true,
+  showQr: true,
+  showVatDefault: false
+};
+var CONFIG = Object.assign({}, DEFAULTS);
+
+/* ================================================================================
+   2) STATE — cart, payment, paper, receipt counter
+================================================================================ */
+var state = {
+  items: [],                 // {id,name,price,qty,discount,discountRaw,discountType}
+  applyVat: false,
+  payment: { method: "Cash", amountPaid: 0, cashier: DEFAULTS.defaultCashier },
+  paperWidth: 80,
+  receiptCounter: 0,
+  lockedNo: null             // locked receipt no after Generate/Print (reprint keeps same no)
+};
+try { state.receiptCounter = parseInt(localStorage.getItem('csm_receipt_counter') || '0', 10) || 0; } catch(e){}
+
+/* ================================================================================
+   3) PERSISTENCE — settings + cart in localStorage
+================================================================================ */
+function saveSettings(){ try{ localStorage.setItem('csm_settings', JSON.stringify(CONFIG)); }catch(e){} }
+function loadSettings(){
+  try{
+    var raw = localStorage.getItem('csm_settings');
+    if(raw){ var s = JSON.parse(raw); CONFIG = Object.assign({}, DEFAULTS, s); }
+  }catch(e){}
+  state.paperWidth = (CONFIG.defaultPaperWidth === 58) ? 58 : 80;
+  state.applyVat = !!CONFIG.showVatDefault;
+  state.payment.cashier = CONFIG.defaultCashier;
+}
+function saveCart(){ try{ localStorage.setItem('csm_cart', JSON.stringify({items:state.items, applyVat:state.applyVat})); }catch(e){} }
+function loadCart(){
+  try{
+    var raw = localStorage.getItem('csm_cart');
+    if(raw){ var d = JSON.parse(raw); state.items = d.items || []; state.applyVat = !!d.applyVat; }
+  }catch(e){}
+}
+function saveCounter(){ try{ localStorage.setItem('csm_receipt_counter', String(state.receiptCounter)); }catch(e){} }
+
+/* ================================================================================
+   4) UTILITIES
+================================================================================ */
+function fmtMoney(n){
+  var num = Number(n) || 0;
+  return CONFIG.currency + ' ' + num.toLocaleString('en-KE',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function pad(n,len){ len=len||2; return String(n).padStart(len,'0'); }
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+var _toastTimer=null;
+function toast(msg,type){
+  type=type||'success';
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  clearTimeout(_toastTimer); _toastTimer=setTimeout(function(){ t.className='toast'; },2300);
+}
+function todayMeta(){
+  var d=new Date();
+  return {
+    date: d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
+    time: d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+    iso: d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())
+  };
+}
+/* Seeded PRNG for deterministic barcode/QR patterns */
+function xmur3(str){var h=1779033703^str.length;for(var i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return function(){h=Math.imul(h^(h>>>16),2246822507);h=Math.imul(h^(h>>>13),3266489909);return (h^=h>>>16)>>>0;};}
+function mulberry32(a){return function(){var t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
+
+/* ================================================================================
+   5) RECEIPT NUMBER — auto-increment + persist, reprint keeps same number
+================================================================================ */
+function previewNo(){
+  var m=todayMeta();
+  return CONFIG.receiptPrefix + '-' + m.iso + '-' + pad(state.receiptCounter+1,4);
+}
+function displayNo(){
+  if(state.lockedNo) return state.lockedNo;
+  return previewNo();
+}
+function newReceiptNo(){
+  state.receiptCounter+=1; saveCounter();
+  var m=todayMeta();
+  state.lockedNo = CONFIG.receiptPrefix + '-' + m.iso + '-' + pad(state.receiptCounter,4);
+  return state.lockedNo;
+}
+function unlockReceiptNo(){ state.lockedNo=null; } // cart changed -> next receipt gets new number
+
+/* ================================================================================
+   6) CALCULATIONS
+================================================================================ */
+function lineTotal(it){
+  var gross=(Number(it.price)||0)*(Number(it.qty)||0);
+  var disc=Number(it.discount)||0;
+  return Math.max(0, gross-disc);
+}
+function cartTotals(){
+  var sub=0,disc=0,i,it;
+  for(i=0;i<state.items.length;i++){ it=state.items[i]; sub+=(Number(it.price)||0)*(Number(it.qty)||0); disc+=Number(it.discount)||0; }
+  var after=Math.max(0,sub-disc);
+  var vat=state.applyVat? after*Number(CONFIG.vatRate||0):0;
+  return {subtotal:sub, discount:disc, vat:vat, grand:after+vat};
+}
+
+/* ================================================================================
+   7) LOGO — default SVG + upload + URL (logo.png), always B&W on receipt
+   To use your own file: put logo.png beside index.html and choose Image URL=logo.png
+================================================================================ */
+function defaultLogoSvg(size,shape){
+  var s=Number(size)||50;
+  var rad=(shape==='rect')?'6px':'50%';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="'+s+'" height="'+s+'" style="width:'+s+'px;height:'+s+'px;border-radius:'+rad+';background:#fff;" role="img" aria-label="Store logo">'
+    +'<circle cx="50" cy="50" r="46" fill="#ffffff" stroke="#000" stroke-width="4"/>'
+    +'<text x="50" y="44" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="20" fill="#000">CSM</text>'
+    +'<text x="50" y="59" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="8.5" fill="#000">SUPERMARKET</text>'
+    +'<path d="M28 72 L50 62 L72 72" stroke="#000" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    +'</svg>';
+}
+function getLogoHtml(){
+  var type=CONFIG.logoType, size=Number(CONFIG.logoSize)||50;
+  if(type==='none') return '';
+  if(type==='upload' && CONFIG.logoDataUrl){
+    var st = CONFIG.logoShape==='rect'
+      ? 'border-radius:6px;object-fit:contain;border:1px solid #000;'
+      : 'border-radius:50%;object-fit:cover;border:2px solid #000;';
+    return '<img src="'+CONFIG.logoDataUrl+'" width="'+size+'" height="'+size+'" alt="Logo" style="width:'+size+'px;height:'+size+'px;'+st+'filter:grayscale(100%) contrast(1.15);background:#fff;">';
+  }
+  if(type==='url' && CONFIG.logoUrl){
+    var st2 = CONFIG.logoShape==='rect'
+      ? 'border-radius:6px;object-fit:contain;border:1px solid #000;'
+      : 'border-radius:50%;object-fit:cover;border:2px solid #000;';
+    return '<img src="'+escapeHtml(CONFIG.logoUrl)+'" width="'+size+'" height="'+size+'" alt="Logo" style="width:'+size+'px;height:'+size+'px;'+st2+'filter:grayscale(100%) contrast(1.15);background:#fff;" onerror="this.style.display=\'none\'">';
+  }
+  return defaultLogoSvg(size, CONFIG.logoShape); // default
+}
+/* Resize uploaded image to max 320px to fit localStorage, keep aspect */
+function resizeImageFile(file){
+  return new Promise(function(resolve,reject){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        try{
+          var max=320, w=img.width, h=img.height;
+          var scale=Math.min(1, max/Math.max(w,h));
+          var nw=Math.max(1,Math.round(w*scale)), nh=Math.max(1,Math.round(h*scale));
+          var c=document.createElement('canvas'); c.width=nw; c.height=nh;
+          var ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,nw,nh); ctx.drawImage(img,0,0,nw,nh);
+          var url=c.toDataURL('image/png');
+          if(url.length>900000){ url=c.toDataURL('image/jpeg',0.85); } // fallback compress
+          resolve(url);
+        }catch(err){ reject(err); }
+      };
+      img.onerror=reject; img.src=e.target.result;
+    };
+    reader.onerror=reject; reader.readAsDataURL(file);
+  });
+}
+
+/* ================================================================================
+   8) BARCODE + QR PLACEHOLDERS (pure CSS/SVG, B&W printable)
+================================================================================ */
+function barcodeHtml(seed){
+  var seedFn=xmur3(String(seed)); var rnd=mulberry32(seedFn());
+  var bars='';
+  for(var i=0;i<42;i++){
+    var w=1+Math.floor(rnd()*3);            // 1-4px
+    var h=28+Math.floor(rnd()*10);          // varied height
+    var g=(rnd()>0.5)?1:2;
+    bars+='<i style="width:'+w+'px;height:'+h+'px;margin-right:'+g+'px"></i>';
+  }
+  return '<div class="barcode-bars" aria-hidden="true">'+bars+'</div>'
+       + '<div class="barcode-num">'+escapeHtml(seed)+'</div>';
+}
+function qrHtml(seedText){
+  var N=21, total=N*N, cells=new Array(total).fill(0);
+  var seedFn=xmur3(String(seedText)); var rnd=mulberry32(seedFn());
+  var i;
+  for(i=0;i<total;i++){ cells[i]=rnd()>0.52?1:0; }
+  function finder(r0,c0){
+    for(var r=0;r<7;r++)for(var c=0;c<7;c++){
+      var rr=r0+r, cc=c0+c;
+      var border=(r===0||r===6||c===0||c===6);
+      var center=(r>=2&&r<=4&&c>=2&&c<=4);
+      cells[rr*N+cc]=(border||center)?1:0;
+    }
+  }
+  finder(0,0); finder(0,N-7); finder(N-7,0);
+  var html='';
+  for(i=0;i<total;i++){ html+='<i class="'+(cells[i]?'b':'w')+'"></i>'; }
+  return '<div class="qr-grid" aria-hidden="true">'+html+'</div>'
+       + '<div class="qr-text">'+escapeHtml(CONFIG.website)+'</div>';
+}
+
+/* ================================================================================
+   9) RENDER — item table + live receipt (exact order 1..14)
+================================================================================ */
+function renderItemsTable(){
+  var body=document.getElementById('itemsBody');
+  document.getElementById('cartCount').textContent=state.items.length;
+  if(state.items.length===0){
+    body.innerHTML='<tr class="empty-row"><td colspan="6">No items added yet</td></tr>';
+  }else{
+    var html='';
+    for(var i=0;i<state.items.length;i++){
+      var it=state.items[i];
+      var discLabel=fmtMoney(it.discount||0);
+      if(it.discountType==='pct'){ discLabel+=' <span style="color:#64748b;font-size:11px;">('+escapeHtml(String(it.discountRaw||0))+'%)</span>'; }
+      html+='<tr>'
+        +'<td>'+escapeHtml(it.name)+'</td>'
+        +'<td class="right">'+fmtMoney(it.price)+'</td>'
+        +'<td class="center">'+it.qty+'</td>'
+        +'<td class="right">'+discLabel+'</td>'
+        +'<td class="right"><strong>'+fmtMoney(lineTotal(it))+'</strong></td>'
+        +'<td class="center"><button class="btn btn-danger btn-sm" data-remove="'+it.id+'" type="button">Remove</button></td>'
+        +'</tr>';
+    }
+    body.innerHTML=html;
+    var btns=body.querySelectorAll('[data-remove]');
+    for(var b=0;b<btns.length;b++){
+      (function(btn){ btn.addEventListener('click',function(){ removeItem(btn.getAttribute('data-remove')); }); })(btns[b]);
+    }
+  }
+  var t=cartTotals();
+  document.getElementById('tSubtotal').textContent=fmtMoney(t.subtotal);
+  document.getElementById('tDiscount').textContent=fmtMoney(t.discount);
+  var vatPct=(Number(CONFIG.vatRate||0)*100);
+  var vatPctStr=(Math.round(vatPct*10)/10).toString();
+  document.getElementById('tVatLabel').textContent='VAT ('+vatPctStr+'%)';
+  document.getElementById('tVat').textContent=fmtMoney(t.vat);
+  document.getElementById('tGrand').textContent=fmtMoney(t.grand);
+  document.getElementById('tVatRow').style.display=state.applyVat?'flex':'none';
+  document.getElementById('vatLabel').textContent='Apply VAT ('+vatPctStr+'%)';
+  // Auto-fill Amount Paid for Cash (until user edits manually)
+  var ap=document.getElementById('amountPaid');
+  if(state.payment.method==='Cash' && ap.getAttribute('data-touched')!=='1'){
+    ap.value=t.grand.toFixed(2);
+  }
+  renderReceipt(); saveCart();
+}
+
+function renderReceipt(){
+  var t=cartTotals();
+  var meta=todayMeta();
+  var receiptNo=displayNo();
+  var cashierEl=document.getElementById('cashierName');
+  var cashier=(cashierEl.value||'').trim()||CONFIG.defaultCashier;
+  state.payment.cashier=cashier;
+  var method=document.getElementById('payMethod').value;
+  state.payment.method=method;
+  var amtPaid=parseFloat(document.getElementById('amountPaid').value)||0;
+  state.payment.amountPaid=amtPaid;
+  var change=(method==='Cash')?Math.max(0,amtPaid-t.grand):0;
+
+  var narrow=(state.paperWidth===58);
+  var dashes=narrow?'--------------------------------':'------------------------------------------';
+
+  /* 7-8) Headers + rows (wrapped long names; narrow uses 2-line rows) */
+  var itemsHtml='';
+  if(state.items.length===0){
+    itemsHtml='<tr><td colspan="4" class="center" style="padding:8px 0;">— No items —</td></tr>';
+  }else if(narrow){
+    itemsHtml=state.items.map(function(it){
+      var r='<tr><td colspan="4" class="wrap"><b>'+escapeHtml(it.name)+'</b></td></tr>';
+      r+='<tr><td></td><td class="c">'+it.qty+'</td><td class="r">'+fmtMoney(it.price)+'</td><td class="r">'+fmtMoney(lineTotal(it))+'</td></tr>';
+      if(Number(it.discount)>0){ r+='<tr class="disc-line"><td colspan="4" class="right">Disc: -'+fmtMoney(it.discount)+'</td></tr>'; }
+      return r;
+    }).join('');
+  }else{
+    itemsHtml=state.items.map(function(it){
+      var r='<tr><td class="wrap">'+escapeHtml(it.name)+'</td><td class="c">'+it.qty+'</td><td class="r">'+fmtMoney(it.price)+'</td><td class="r">'+fmtMoney(lineTotal(it))+'</td></tr>';
+      if(Number(it.discount)>0){ r+='<tr class="disc-line"><td colspan="4" class="right">Disc: -'+fmtMoney(it.discount)+'</td></tr>'; }
+      return r;
+    }).join('');
+  }
+
+  var vatPct=(Number(CONFIG.vatRate||0)*100);
+  var vatPctStr=(Math.round(vatPct*10)/10).toString();
+
+  /* Build receipt in EXACT order 1..14 */
+  var html='';
+  html+='<div class="logo-box">'+getLogoHtml()+'</div>';                                            // 1 Logo
+  html+='<div class="store-name">'+escapeHtml(CONFIG.storeName)+'</div>';                           // 2 Store name
+  html+='<div class="addr">'+escapeHtml(CONFIG.addressLine1)+'</div>'                               // 3 Address
+       +'<div class="addr">'+escapeHtml(CONFIG.addressLine2)+'</div>'
+       +'<div class="addr">'+escapeHtml(CONFIG.phone)+'</div>'
+       +'<div class="addr">'+escapeHtml(CONFIG.email)+'</div>';
+  html+='<div class="r-div">'+dashes+'</div>';                                                       // 4 Divider
+  html+='<div class="meta"><span>Date:</span><span>'+escapeHtml(meta.date)+'</span></div>'          // 5 Meta
+       +'<div class="meta"><span>Time:</span><span>'+escapeHtml(meta.time)+'</span></div>'
+       +'<div class="meta"><span>Receipt #:</span><span>'+escapeHtml(receiptNo)+'</span></div>'
+       +'<div class="meta"><span>Cashier:</span><span>'+escapeHtml(cashier)+'</span></div>';
+  html+='<div class="r-div">'+dashes+'</div>';                                                       // 6 Divider
+  html+='<table class="items"><thead><tr><th>ITEM</th><th class="c">QTY</th><th class="r">PRICE</th><th class="r">TOTAL</th></tr></thead><tbody>'+itemsHtml+'</tbody></table>'; // 7+8
+  html+='<div class="r-div">'+dashes+'</div>';                                                       // 9 Divider
+  html+='<div class="totals">'                                                                      // 10 Totals
+       +'<div class="row"><span>Subtotal</span><span>'+fmtMoney(t.subtotal)+'</span></div>'
+       +'<div class="row"><span>Discount</span><span>-'+fmtMoney(t.discount)+'</span></div>'
+       +(state.applyVat?'<div class="row"><span>VAT ('+vatPctStr+'%)</span><span>'+fmtMoney(t.vat)+'</span></div>':'')
+       +'<div class="row grand"><span>TOTAL</span><span>'+fmtMoney(t.grand)+'</span></div></div>';
+  html+='<div class="meta"><span>Paid ('+escapeHtml(method)+'):</span><span>'+fmtMoney(amtPaid)+'</span></div>'; // 11 Payment
+  if(method==='Cash'){ html+='<div class="meta"><span>Change:</span><span>'+fmtMoney(change)+'</span></div>'; }
+  html+='<div class="r-div stars">* * * * *</div>';                                                  // 12 Divider
+  html+='<div class="footer">'+escapeHtml(CONFIG.foot1)+'<br>'+escapeHtml(CONFIG.foot2)+'<br>'+escapeHtml(CONFIG.foot3)+'<br><span style="font-size:9px;">'+escapeHtml(CONFIG.website)+'</span></div>'; // 13 Footer
+  if(CONFIG.showBarcode){ html+=barcodeHtml(receiptNo); }                                            // 14 Barcode
+  if(CONFIG.showQr){ html+=qrHtml(receiptNo+'|'+CONFIG.website); }                                  // QR placeholder
+
+  var el=document.getElementById('receiptEl');
+  el.innerHTML=html;
+  if(narrow){ el.classList.add('width-58'); }else{ el.classList.remove('width-58'); }
+  document.getElementById('previewMeta').textContent=receiptNo+' · '+state.items.length+' item(s) · '+fmtMoney(t.grand);
+}
+
+/* ================================================================================
+   10) CART ACTIONS
+================================================================================ */
+function addItem(){
+  var name=document.getElementById('itemName').value.trim();
+  var price=parseFloat(document.getElementById('itemPrice').value);
+  var qty=parseInt(document.getElementById('itemQty').value,10);
+  var discRaw=parseFloat(document.getElementById('itemDisc').value)||0;
+  var discType=document.getElementById('itemDiscType').value; // flat | pct
+  if(!name){ toast('Please enter an item name','error'); document.getElementById('itemName').focus(); return; }
+  if(isNaN(price)||price<0){ toast('Enter a valid unit price','error'); return; }
+  if(isNaN(qty)||qty<1){ toast('Quantity must be at least 1','error'); return; }
+  if(discRaw<0){ toast('Discount cannot be negative','error'); return; }
+  var gross=price*qty, discFlat=0;
+  if(discType==='pct'){
+    if(discRaw>100){ toast('Discount % cannot exceed 100','error'); return; }
+    discFlat=gross*(discRaw/100);
+  }else{
+    if(discRaw>gross){ toast('Discount cannot exceed line total','error'); return; }
+    discFlat=discRaw;
+  }
+  discFlat=Math.round(discFlat*100)/100;
+  state.items.push({id:uid(), name:name, price:Math.round(price*100)/100, qty:qty, discount:discFlat, discountRaw:discRaw, discountType:discType});
+  unlockReceiptNo();
+  document.getElementById('itemName').value='';
+  document.getElementById('itemPrice').value='';
+  document.getElementById('itemName').focus();
+  renderItemsTable();
+  toast('Added "'+name+'"','success');
+}
+function removeItem(id){
+  state.items=state.items.filter(function(x){return x.id!==id;});
+  unlockReceiptNo(); renderItemsTable(); toast('Item removed','info');
+}
+function clearAll(){
+  if(state.items.length===0) return;
+  if(!confirm('Clear all items from the cart?')) return;
+  state.items=[]; unlockReceiptNo(); renderItemsTable(); toast('Cart cleared','info');
+}
+
+/* ================================================================================
+   11) GENERATE / PRINT
+================================================================================ */
+function generateReceipt(){
+  if(state.items.length===0){ toast('Cart is empty — add items first','error'); return; }
+  var no=newReceiptNo();
+  renderReceipt();
+  toast('Receipt '+no+' generated','success');
+}
+function printReceipt(){
+  if(state.items.length===0){ toast('Cart is empty — add items first','error'); return; }
+  if(!state.lockedNo){ newReceiptNo(); } // lock a number for this sale
+  renderReceipt();
+  toast('Sending to printer…','info');
+  setTimeout(function(){ window.print(); },250);
+}
+
+/* ================================================================================
+   12) PAPER WIDTH — toggles preview + @page size
+================================================================================ */
+function setPaperWidth(w){
+  state.paperWidth=(w===58)?58:80;
+  var btns=document.querySelectorAll('#paperToggle button');
+  for(var i=0;i<btns.length;i++){ btns[i].classList.toggle('active', Number(btns[i].getAttribute('data-w'))===state.paperWidth); }
+  document.getElementById('paperBadge').textContent=state.paperWidth+'mm';
+  try{ document.getElementById('pageSizeStyle').textContent='@page { size: '+state.paperWidth+'mm auto; margin: 0; }'; }catch(e){}
+  renderReceipt();
+}
+
+/* ================================================================================
+   13) SETTINGS MODAL — logo + supermarket details
+================================================================================ */
+var tempLogoDataUrl='';
+function openSettings(){
+  // Populate from CONFIG
+  document.getElementById('setStoreName').value=CONFIG.storeName||'';
+  document.getElementById('setAddr1').value=CONFIG.addressLine1||'';
+  document.getElementById('setAddr2').value=CONFIG.addressLine2||'';
+  document.getElementById('setPhone').value=CONFIG.phone||'';
+  document.getElementById('setEmail').value=CONFIG.email||'';
+  document.getElementById('setWebsite').value=CONFIG.website||'';
+  document.getElementById('setCurrency').value=CONFIG.currency||'KSh';
+  document.getElementById('setVatRate').value=(Number(CONFIG.vatRate||0)*100);
+  document.getElementById('setPrefix').value=CONFIG.receiptPrefix||'CSM';
+  document.getElementById('setCashier').value=CONFIG.defaultCashier||'';
+  document.getElementById('setPaper').value=String(CONFIG.defaultPaperWidth||80);
+  document.getElementById('setFoot1').value=CONFIG.foot1||'';
+  document.getElementById('setFoot2').value=CONFIG.foot2||'';
+  document.getElementById('setFoot3').value=CONFIG.foot3||'';
+  document.getElementById('setShowBarcode').checked=!!CONFIG.showBarcode;
+  document.getElementById('setShowQr').checked=!!CONFIG.showQr;
+  document.getElementById('setShowVatDefault').checked=!!CONFIG.showVatDefault;
+  document.getElementById('setLogoUrl').value=CONFIG.logoUrl||'logo.png';
+  document.getElementById('setLogoShape').value=CONFIG.logoShape||'circle';
+  document.getElementById('setLogoSize').value=CONFIG.logoSize||50;
+  document.getElementById('logoSizeVal').textContent=(CONFIG.logoSize||50)+'px';
+  tempLogoDataUrl=CONFIG.logoDataUrl||'';
+  var radios=document.querySelectorAll('input[name="logoType"]');
+  for(var i=0;i<radios.length;i++){ radios[i].checked=(radios[i].value===CONFIG.logoType); }
+  updateLogoWraps(); renderLogoPreview();
+  document.getElementById('counterVal').textContent=state.receiptCounter;
+  document.getElementById('nextVal').textContent=previewNo();
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings(){ document.getElementById('settingsOverlay').classList.remove('open'); }
+function currentLogoType(){
+  var r=document.querySelector('input[name="logoType"]:checked');
+  return r?r.value:'default';
+}
+function updateLogoWraps(){
+  var t=currentLogoType();
+  document.getElementById('logoUploadWrap').style.display=(t==='upload')?'block':'none';
+  document.getElementById('logoUrlWrap').style.display=(t==='url')?'block':'none';
+}
+function renderLogoPreview(){
+  var box=document.getElementById('logoPreview');
+  var t=currentLogoType();
+  var size=Number(document.getElementById('setLogoSize').value)||50;
+  var shape=document.getElementById('setLogoShape').value;
+  document.getElementById('logoSizeVal').textContent=size+'px';
+  if(t==='none'){ box.innerHTML='<span style="font-size:12px;color:#94a3b8;">(No logo will show)</span>'; return; }
+  if(t==='upload'){
+    if(tempLogoDataUrl){
+      var st=shape==='rect'?'border-radius:6px;object-fit:contain;border:1px solid #000;':'border-radius:50%;object-fit:cover;border:2px solid #000;';
+      box.innerHTML='<img src="'+tempLogoDataUrl+'" style="width:'+size+'px;height:'+size+'px;'+st+'filter:grayscale(100%) contrast(1.1);background:#fff;" alt="Logo preview">';
+    }else{ box.innerHTML='<span style="font-size:12px;color:#94a3b8;">Upload an image to preview</span>'; }
+    return;
+  }
+  if(t==='url'){
+    var url=document.getElementById('setLogoUrl').value.trim()||'logo.png';
+    var st2=shape==='rect'?'border-radius:6px;object-fit:contain;border:1px solid #000;':'border-radius:50%;object-fit:cover;border:2px solid #000;';
+    box.innerHTML='<img src="'+escapeHtml(url)+'" style="width:'+size+'px;height:'+size+'px;'+st2+'filter:grayscale(100%) contrast(1.1);background:#fff;" alt="Logo preview" onerror="this.outerHTML=\'<span style=&quot;font-size:12px;color:#b91c1c;&quot;>Could not load: '+escapeHtml(url)+'<br>Place logo.png next to index.html</span>\'">'
+      +'<div style="font-size:10px;color:#64748b;margin-top:6px;width:100%;text-align:center;">'+escapeHtml(url)+'</div>';
+    box.style.flexDirection='column';
+    return;
+  }
+  box.style.flexDirection='row';
+  box.innerHTML=defaultLogoSvg(size,shape);
+}
+function saveSettingsFromModal(){
+  var storeName=document.getElementById('setStoreName').value.trim()||DEFAULTS.storeName;
+  var vatPct=parseFloat(document.getElementById('setVatRate').value);
+  if(isNaN(vatPct)||vatPct<0||vatPct>100){ toast('VAT rate must be 0–100','error'); return; }
+  CONFIG.storeName=storeName;
+  CONFIG.addressLine1=document.getElementById('setAddr1').value.trim();
+  CONFIG.addressLine2=document.getElementById('setAddr2').value.trim();
+  CONFIG.phone=document.getElementById('setPhone').value.trim();
+  CONFIG.email=document.getElementById('setEmail').value.trim();
+  CONFIG.website=document.getElementById('setWebsite').value.trim();
+  CONFIG.currency=document.getElementById('setCurrency').value.trim()||'KSh';
+  CONFIG.vatRate=vatPct/100;
+  CONFIG.receiptPrefix=(document.getElementById('setPrefix').value.trim()||'CSM').toUpperCase();
+  CONFIG.defaultCashier=document.getElementById('setCashier').value.trim()||'Cashier';
+  CONFIG.defaultPaperWidth=(document.getElementById('setPaper').value==='58')?58:80;
+  CONFIG.foot1=document.getElementById('setFoot1').value.trim();
+  CONFIG.foot2=document.getElementById('setFoot2').value.trim();
+  CONFIG.foot3=document.getElementById('setFoot3').value.trim();
+  CONFIG.showBarcode=document.getElementById('setShowBarcode').checked;
+  CONFIG.showQr=document.getElementById('setShowQr').checked;
+  CONFIG.showVatDefault=document.getElementById('setShowVatDefault').checked;
+  CONFIG.logoType=currentLogoType();
+  CONFIG.logoUrl=document.getElementById('setLogoUrl').value.trim()||'logo.png';
+  CONFIG.logoShape=document.getElementById('setLogoShape').value;
+  CONFIG.logoSize=Number(document.getElementById('setLogoSize').value)||50;
+  CONFIG.logoDataUrl=tempLogoDataUrl||'';
+  if(CONFIG.logoType==='upload' && !CONFIG.logoDataUrl){ CONFIG.logoType='default'; }
+  saveSettings();
+  // Apply that affects UI immediately
+  unlockReceiptNo();
+  var cn=document.getElementById('cashierName');
+  if(!cn.value.trim() || cn.value.trim()===state.payment.cashier){ cn.value=CONFIG.defaultCashier; }
+  document.getElementById('applyVat').checked=!!CONFIG.showVatDefault ? true : document.getElementById('applyVat').checked;
+  if(document.getElementById('applyVat').checked!==state.applyVat && state.items.length===0){ state.applyVat=document.getElementById('applyVat').checked; }
+  setPaperWidth(CONFIG.defaultPaperWidth);
+  renderItemsTable(); closeSettings();
+  toast('Settings saved','success');
+}
+
+/* ================================================================================
+   14) EVENTS
+================================================================================ */
+document.getElementById('addBtn').addEventListener('click', addItem);
+document.getElementById('clearBtn').addEventListener('click', clearAll);
+document.getElementById('generateBtn').addEventListener('click', generateReceipt);
+document.getElementById('printBtn').addEventListener('click', printReceipt);
+document.getElementById('exactBtn').addEventListener('click', function(){
+  var t=cartTotals(); var ap=document.getElementById('amountPaid');
+  ap.value=t.grand.toFixed(2); ap.setAttribute('data-touched','1'); renderReceipt();
+});
+document.getElementById('applyVat').addEventListener('change', function(e){ state.applyVat=e.target.checked; renderItemsTable(); });
+// Enter to add
+['itemName','itemPrice','itemQty','itemDisc'].forEach(function(id){
+  document.getElementById(id).addEventListener('keydown', function(e){
+    if(e.key==='Enter'){ e.preventDefault(); addItem(); }
+  });
+});
+document.getElementById('itemDiscType').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); addItem(); } });
+document.getElementById('cashierName').addEventListener('input', renderReceipt);
+document.getElementById('payMethod').addEventListener('change', function(){
+  var ap=document.getElementById('amountPaid');
+  if(this.value==='Cash'){ ap.removeAttribute('data-touched'); }
+  renderItemsTable();
+});
+document.getElementById('amountPaid').addEventListener('input', function(){
+  var t=cartTotals();
+  if(Math.abs((parseFloat(this.value)||0)-t.grand)<0.005){ this.removeAttribute('data-touched'); }
+  else{ this.setAttribute('data-touched','1'); }
+  renderReceipt();
+});
+document.getElementById('paperToggle').addEventListener('click', function(e){
+  if(e.target && e.target.getAttribute('data-w')){ setPaperWidth(Number(e.target.getAttribute('data-w'))); }
+});
+// Settings open/close
+document.getElementById('openSettingsBtn').addEventListener('click', openSettings);
+document.getElementById('openSettingsBtn2').addEventListener('click', openSettings);
+document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+document.getElementById('cancelSettingsBtn').addEventListener('click', closeSettings);
+document.getElementById('saveSettingsBtn').addEventListener('click', saveSettingsFromModal);
+document.getElementById('settingsOverlay').addEventListener('click', function(e){ if(e.target===this) closeSettings(); });
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){ closeSettings(); }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='p'){ renderReceipt(); /* let browser print */ }
+});
+// Settings live bindings
+var _radios=document.querySelectorAll('input[name="logoType"]');
+for(var ri=0;ri<_radios.length;ri++){ _radios[ri].addEventListener('change', function(){ updateLogoWraps(); renderLogoPreview(); }); }
+document.getElementById('setLogoSize').addEventListener('input', renderLogoPreview);
+document.getElementById('setLogoShape').addEventListener('change', renderLogoPreview);
+document.getElementById('setLogoUrl').addEventListener('input', renderLogoPreview);
+document.getElementById('setLogoFile').addEventListener('change', function(e){
+  var f=e.target.files && e.target.files[0];
+  if(!f) return;
+  if(!/^image\//.test(f.type)){ toast('Please choose an image file','error'); return; }
+  toast('Processing logo…','info');
+  resizeImageFile(f).then(function(url){
+    tempLogoDataUrl=url;
+    var up=document.querySelector('input[name="logoType"][value="upload"]');
+    if(up) up.checked=true;
+    updateLogoWraps(); renderLogoPreview();
+    toast('Logo ready — click Save','success');
+  }).catch(function(){ toast('Could not read image','error'); });
+});
+document.getElementById('removeLogoBtn').addEventListener('click', function(){
+  tempLogoDataUrl=''; document.getElementById('setLogoFile').value=''; renderLogoPreview(); toast('Uploaded logo removed','info');
+});
+document.getElementById('resetSettingsBtn').addEventListener('click', function(){
+  if(!confirm('Reset all store settings to defaults?')) return;
+  CONFIG=Object.assign({}, DEFAULTS); saveSettings(); openSettings();
+  document.getElementById('cashierName').value=CONFIG.defaultCashier;
+  setPaperWidth(CONFIG.defaultPaperWidth); renderItemsTable(); toast('Settings reset','info');
+});
+document.getElementById('resetCounterBtn').addEventListener('click', function(){
+  if(!confirm('Reset receipt counter to 0?')) return;
+  state.receiptCounter=0; saveCounter(); unlockReceiptNo();
+  document.getElementById('counterVal').textContent='0';
+  document.getElementById('nextVal').textContent=previewNo();
+  renderReceipt(); toast('Counter reset','info');
+});
+
+/* ================================================================================
+   15) BOOT
+================================================================================ */
+loadSettings();
+loadCart();
+document.getElementById('applyVat').checked=!!state.applyVat;
+document.getElementById('cashierName').value=state.payment.cashier||CONFIG.defaultCashier;
+setPaperWidth(state.paperWidth);
+renderItemsTable();
+document.getElementById('itemName').focus();
+</script>
+</body>
+</html>
